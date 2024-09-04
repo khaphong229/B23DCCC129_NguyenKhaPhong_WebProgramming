@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quản lý sinh viên</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Danh sách sinh viên</h1>
+      <div class="form">
+        <form class="form-container">
+          <input type="hidden" id="id" />
+          <!-- Ẩn trường ID -->
+          <div class="form-group">
+            <label for="code">Mã sinh viên</label>
+            <input type="text" id="code" />
+          </div>
+          <div class="form-group">
+            <label for="name">Họ tên</label>
+            <input type="text" id="name" />
+          </div>
+          <div class="form-group">
+            <label for="clas">Lớp</label>
+            <input type="text" id="clas" />
+          </div>
+          <div class="form-group">
+            <label for="gender">Giới tính</label>
+            <input type="radio" name="gender" value="Nam" />Nam
+            <input type="radio" name="gender" value="Nữ" />Nữ
+          </div>
+          <div class="form-group">
+            <label for="birth">Ngày sinh</label>
+            <input type="date" id="birth" />
+          </div>
+          <div class="form-group">
+            <label for="born">Quê quán</label>
+            <input type="text" id="born" />
+          </div>
+          <button type="button" id="submitStudent">Thêm</button>
+        </form>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>STT</th>
+            <th>Mã sinh viên</th>
+            <th>Họ tên</th>
+            <th>Lớp</th>
+            <th>Giới tính</th>
+            <th>Ngày sinh</th>
+            <th>Quê quán</th>
+            <th>Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          <div id="mess"></div>
+          <!-- <tr>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr> -->
+        </tbody>
+      </table>
+    </div>
+    <script src="main.js"></script>
+  </body>
+</html>
