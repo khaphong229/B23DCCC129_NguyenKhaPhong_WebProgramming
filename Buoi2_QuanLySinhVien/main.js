@@ -90,7 +90,7 @@ function AddStudent() {
   );
   const birth = document.getElementById("birth").value;
   const born = document.getElementById("born").value;
-
+  
   let gender = "";
   genderInput.forEach((item) => {
     if (item.checked) {
