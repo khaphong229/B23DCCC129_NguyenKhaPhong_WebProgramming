@@ -1,0 +1,28 @@
+<div class="container mt-4">
+    <div class="mb-4">
+        <a href="me/trash/courses" class="btn btn-danger">Thùng rác</a>
+    </div>
+    <div class="row">
+        {{#each courses}}
+        <div class="col-sm-6 col-lg-4 mb-4">
+            <div class="card h-100">
+                <a href="/courses/{{this.slug}}">
+                    <img src="{{this.image}}" class="card-img-top" alt="{{this.name}}">
+                </a>
+                <div class="card-body d-flex flex-column">
+                    <a href="/courses/{{this.slug}}">
+                        <h5 class="card-title">{{this.name}}</h5>
+                    </a>
+                    <p class="card-text flex-grow-1">{{this.description}}</p>
+                    <a href="#" class="btn btn-primary mt-auto">Mua khóa học</a>
+                </div>
+            </div>
+        </div>
+        {{else}}
+        <div>
+            <span>Bạn chưa đăng khóa học nào</span>
+            <a href="/courses/create" class="btn btn-primary">Đăng khóa học</a>
+        </div>
+        {{/each}}
+    </div>
+</div>

@@ -1,0 +1,68 @@
+<div class="container mt-4">
+    <div>
+        <a href="/" class="btn btn-danger">Danh sách khóa học</a>
+    </div>
+    <br>
+    <div class="row">
+        {{#each courses}}
+        <div class="col-sm-6 col-lg-4 mb-4">
+            <div class="card h-100">
+                <a href="/courses/{{this.slug}}">
+                    <img src="{{this.image}}" class="card-img-top" alt="{{this.name}}">
+                </a>
+                <div class="card-body d-flex flex-column">
+                    <a href="/courses/{{this.slug}}">
+                        <h5 class="card-title">{{this.name}}</h5>
+                    </a>
+                    <p class="card-text flex-grow-1">{{this.description}}</p>
+                    <a href="" class="btn btn-primary mt-auto restore-btn" data-id="{{this._id}}">Khôi phục</a>
+                    <br>
+                    <a href="#" class="btn btn-primary mt-auto" data-bs-toggle="modal" data-bs-target="#exampleModal" data-id="{{this._id}}">Xóa vĩnh viễn</a>
+                </div>
+            </div>
+        </div>
+        {{else}}
+        <div>
+            <span>Thùng rác trống</span>
+            <a href="/courses/create" class="btn btn-primary">Danh sách khóa học</a>
+        </div>
+        {{/each}}
+    </div>
+</div>
+
+<form method="POST" name="restoreForm"></form>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    var delForm = document.forms['deleteForm'];
+    var restoreForm = document.forms['restoreForm'];
+
+    const exampleModal = document.getElementById('exampleModal');
+    var courseId;
+
+    if (exampleModal) {
+        exampleModal.addEventListener('show.bs.modal', event => {
+            const button = event.relatedTarget;
+            const recipient = button.getAttribute('data-id');
+            courseId = recipient;
+        });
+    }
+
+    const btnDeleteCourse = document.getElementById('btn-delete-course');
+    if (btnDeleteCourse) {
+        btnDeleteCourse.onclick = function() {
+            delForm.action = '' + courseId + '?_method=DELETE';
+            delForm.submit();
+        };
+    }
+
+    document.querySelectorAll('.restore-btn').forEach(function(restoreBtn) {
+        restoreBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            var restoreId = this.getAttribute('data-id');
+            restoreForm.action = '/courses/' + restoreId + '/restore?_method=PATCH';
+            restoreForm.submit();
+        });
+    });
+});
+</script>
