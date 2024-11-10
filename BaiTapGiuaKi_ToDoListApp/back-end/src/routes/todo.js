@@ -2,7 +2,6 @@ const express = require("express");
 const router = express.Router();
 const TodoController = require("../app/controllers/TodoController");
 
-// CRUD routes
 router.get("/", TodoController.index);
 router.get("/search", TodoController.search);
 router.get("/:id", TodoController.show);

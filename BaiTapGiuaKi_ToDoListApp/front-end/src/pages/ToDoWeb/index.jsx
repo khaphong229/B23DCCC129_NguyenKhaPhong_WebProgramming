@@ -10,13 +10,14 @@ import {
   Select,
   message,
   Tag,
+  Row,
+  Col,
 } from "antd";
 import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
-  CheckCircleOutlined,
-  ClockCircleOutlined,
+  SearchOutlined,
   ExclamationCircleOutlined,
 } from "@ant-design/icons";
 import ToDoLayout from "../../layouts/ToDoLayout/index";
@@ -24,10 +25,12 @@ import { todoService } from "../../api/ToDo";
 import moment from "moment";
 
 const { Option } = Select;
+const { Search } = Input;
 
-function TodoList() {
+export default function TodoList() {
   const [toDo, setToDo] = useState({});
   const [listToDo, setListToDo] = useState([]);
+  const [filteredToDo, setFilteredToDo] = useState([]); // Added state for filtered data
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -37,16 +40,30 @@ function TodoList() {
     fetchTodos();
   }, []);
 
-  const fetchTodos = async () => {
+  const fetchTodos = async (searchText = "") => {
     try {
       setLoading(true);
-      const response = await todoService.getAllTodos();
-      setListToDo(response.data);
+      const response = await todoService.searchTodos({ search: searchText });
+      const formattedTodos = response.data.map((todo) => ({
+        ...todo,
+        date: moment(todo.date, "DD/MM/YYYY").isValid()
+          ? moment(todo.date, "DD/MM/YYYY").format("DD/MM/YYYY")
+          : moment().format("DD/MM/YYYY"),
+      }));
+      setListToDo(formattedTodos);
+      setFilteredToDo(formattedTodos); // Update filteredToDo state
     } catch (error) {
       message.error("Không thể tải danh sách công việc");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearch = (value) => {
+    const filtered = listToDo.filter((todo) =>
+      todo.name.toLowerCase().includes(value.toLowerCase())
+    );
+    setFilteredToDo(filtered);
   };
 
   const handleStatusChange = async (id, newStatus) => {
@@ -70,6 +87,10 @@ function TodoList() {
     } else {
       setToDo({});
       form.resetFields();
+      form.setFieldsValue({
+        date: moment(),
+        status: "pending",
+      });
       setIsAdding(true);
     }
     setIsModalVisible(true);
@@ -80,7 +101,7 @@ function TodoList() {
       const values = await form.validateFields();
       const todoData = {
         ...values,
-        date: values.date.format("DD/MM/YYYY"),
+        date: moment(values.date).format("DD/MM/YYYY"),
       };
 
       if (isAdding) {
@@ -107,6 +128,7 @@ function TodoList() {
   const handleDelete = (id) => {
     Modal.confirm({
       title: "Bạn có chắc chắn muốn xóa công việc này?",
+      icon: <ExclamationCircleOutlined />,
       async onOk() {
         try {
           await todoService.deleteTodo(id);
@@ -124,20 +146,23 @@ function TodoList() {
       title: "Công việc",
       dataIndex: "name",
       key: "name",
+      ellipsis: true,
     },
     {
       title: "Ngày hết hạn",
       dataIndex: "date",
       key: "date",
-      render: (text, record) => {
+      responsive: ["md"],
+      render: (text) => {
         const dueDate = moment(text, "DD/MM/YYYY");
-        const isOverdue = moment().isAfter(dueDate);
+        const isOverdue = moment().isAfter(dueDate, "day");
         return (
           <span style={{ color: isOverdue ? "red" : "inherit" }}>
             {text}
             {isOverdue && (
               <ExclamationCircleOutlined
                 style={{ marginLeft: 8, color: "red" }}
+                title="Đã quá hạn"
               />
             )}
           </span>
@@ -148,9 +173,10 @@ function TodoList() {
       title: "Trạng thái",
       dataIndex: "status",
       key: "status",
+      responsive: ["sm"],
       render: (text, record) => (
         <Select
-          value={record.status}
+          value={text}
           style={{ width: 140 }}
           onChange={(value) => handleStatusChange(record._id, value)}
         >
@@ -170,6 +196,7 @@ function TodoList() {
       title: "Tùy chọn",
       dataIndex: "category",
       key: "category",
+      responsive: ["lg"],
       render: (text) => {
         const categoryColors = {
           study: "blue",
@@ -178,12 +205,27 @@ function TodoList() {
           health: "red",
           leisure: "orange",
         };
-        return <Tag color={categoryColors[text]}>{text}</Tag>;
+        return (
+          <Tag color={categoryColors[text]}>{`${
+            text === "study"
+              ? "Học tập"
+              : text === "work"
+              ? "Công việc"
+              : text === "personal"
+              ? "Cá nhân"
+              : text === "health"
+              ? "Sức khỏe"
+              : text === "leisure"
+              ? "Rảnh rỗi"
+              : ""
+          }`}</Tag>
+        );
       },
     },
     {
       title: "Hành động",
       key: "action",
+      fixed: "right",
       render: (_, record) => (
         <Space size="middle">
           <Button icon={<EditOutlined />} onClick={() => showModal(record)}>
@@ -204,25 +246,53 @@ function TodoList() {
   return (
     <ToDoLayout>
       <div className="formWrap">
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => showModal()}
-          style={{ marginBottom: 16, float: "right" }}
-        >
-          Thêm công việc
-        </Button>
+        <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+          <Col xs={24} sm={24} md={12} lg={12} xl={12}>
+            <Search
+              placeholder="Tìm kiếm công việc..."
+              onSearch={handleSearch}
+              onChange={(e) => handleSearch(e.target.value)}
+              enterButton={<SearchOutlined />}
+            />
+          </Col>
+          <Col
+            xs={24}
+            sm={24}
+            md={12}
+            lg={12}
+            xl={12}
+            style={{ textAlign: "right" }}
+          >
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => showModal()}
+            >
+              Thêm công việc
+            </Button>
+          </Col>
+        </Row>
+
         <Table
           columns={columns}
-          dataSource={listToDo}
+          dataSource={filteredToDo}
           rowKey="_id"
           loading={loading}
+          scroll={{ x: "max-content" }}
+          pagination={{
+            responsive: true,
+            showSizeChanger: true,
+            showQuickJumper: true,
+          }}
         />
+
         <Modal
           title={isAdding ? "Thêm công việc" : "Cập nhật công việc"}
           visible={isModalVisible}
           onOk={handleOk}
           onCancel={() => setIsModalVisible(false)}
+          width="100%"
+          style={{ maxWidth: "600px" }}
         >
           <Form form={form} layout="vertical">
             <Form.Item
@@ -239,7 +309,7 @@ function TodoList() {
               label="Ngày kết thúc"
               rules={[{ required: true, message: "Vui lòng chọn ngày!" }]}
             >
-              <DatePicker format="DD/MM/YYYY" />
+              <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
             </Form.Item>
             <Form.Item
               name="status"
@@ -248,7 +318,7 @@ function TodoList() {
             >
               <Select>
                 <Option value="pending">Đang chờ</Option>
-                <Option value="in progress">Trong tiến trình</Option>
+                <Option value="in-progress">Trong tiến trình</Option>
                 <Option value="done">Hoàn thành</Option>
               </Select>
             </Form.Item>
@@ -271,5 +341,3 @@ function TodoList() {
     </ToDoLayout>
   );
 }
-
-export default TodoList;
