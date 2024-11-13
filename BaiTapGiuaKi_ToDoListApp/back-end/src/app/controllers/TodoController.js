@@ -13,28 +13,7 @@ class TodoController {
     return statusLower;
   };
 
-  _formatDate = (dateString) => {
-    if (!dateString) return dateString;
-
-    // Check if date is already a Date object
-    if (dateString instanceof Date) return dateString;
-
-    // Parse DD/MM/YYYY format
-    const [day, month, year] = dateString.split("/");
-    if (day && month && year) {
-      // Create date in YYYY-MM-DD format
-      const formattedDate = new Date(`${year}-${month}-${day}`);
-      // Check if date is valid
-      if (!isNaN(formattedDate.getTime())) {
-        return formattedDate;
-      }
-    }
-
-    // If parsing fails, return original date string to let Mongoose handle validation
-    return dateString;
-  };
-
-  index = async (req, res, next) => {
+  getAll = async (req, res, next) => {
     try {
       const todos = await Todo.find({});
       res.json({
@@ -46,13 +25,13 @@ class TodoController {
     }
   };
 
-  show = async (req, res, next) => {
+  getById = async (req, res, next) => {
     try {
       const todo = await Todo.findById(req.params.id);
       if (!todo) {
         return res.status(404).json({
           success: false,
-          message: "Todo not found",
+          message: "Không tìm thấy todo",
         });
       }
       res.json({
@@ -68,14 +47,8 @@ class TodoController {
     try {
       const todoData = { ...req.body };
 
-      // Format status if present
       if (todoData.status) {
         todoData.status = this._normalizeStatus(todoData.status);
-      }
-
-      // Format date if present
-      if (todoData.date) {
-        todoData.date = this._formatDate(todoData.date);
       }
 
       const todo = new Todo(todoData);
@@ -101,14 +74,8 @@ class TodoController {
     try {
       const updateData = { ...req.body };
 
-      // Format status if present
       if (updateData.status) {
         updateData.status = this._normalizeStatus(updateData.status);
-      }
-
-      // Format date if present
-      if (updateData.date) {
-        updateData.date = this._formatDate(updateData.date);
       }
 
       const todo = await Todo.findByIdAndUpdate(req.params.id, updateData, {
@@ -119,7 +86,7 @@ class TodoController {
       if (!todo) {
         return res.status(404).json({
           success: false,
-          message: "Todo not found",
+          message: "Không tìm thấy todo",
         });
       }
 
@@ -145,12 +112,12 @@ class TodoController {
       if (!todo) {
         return res.status(404).json({
           success: false,
-          message: "Todo not found",
+          message: "Không tìm thấy todo",
         });
       }
       res.json({
         success: true,
-        message: "Todo deleted successfully",
+        message: "Xóa todo thành công",
       });
     } catch (error) {
       next(error);
@@ -165,7 +132,7 @@ class TodoController {
       if (name) query.name = { $regex: name, $options: "i" };
       if (category) query.category = category;
       if (status) query.status = this._normalizeStatus(status);
-      if (date) query.date = this._formatDate(date);
+      if (date) query.date = date;
 
       const todos = await Todo.find(query);
       res.json({

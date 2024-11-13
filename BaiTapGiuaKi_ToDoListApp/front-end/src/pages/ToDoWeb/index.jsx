@@ -23,6 +23,7 @@ import {
 import ToDoLayout from "../../layouts/ToDoLayout/index";
 import { todoService } from "../../api/ToDo";
 import moment from "moment";
+import "./styles.css";
 
 const { Option } = Select;
 const { Search } = Input;
@@ -30,7 +31,7 @@ const { Search } = Input;
 export default function TodoList() {
   const [toDo, setToDo] = useState({});
   const [listToDo, setListToDo] = useState([]);
-  const [filteredToDo, setFilteredToDo] = useState([]); // Added state for filtered data
+  const [filteredToDo, setFilteredToDo] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -46,14 +47,32 @@ export default function TodoList() {
       const response = await todoService.searchTodos({ search: searchText });
       const formattedTodos = response.data.map((todo) => ({
         ...todo,
-        date: moment(todo.date, "DD/MM/YYYY").isValid()
-          ? moment(todo.date, "DD/MM/YYYY").format("DD/MM/YYYY")
-          : moment().format("DD/MM/YYYY"),
+        date: todo.date,
       }));
-      setListToDo(formattedTodos);
-      setFilteredToDo(formattedTodos); // Update filteredToDo state
+
+      const sortedTodos = formattedTodos.sort((a, b) => {
+        if (a.status === "done" && b.status !== "done") return 1;
+        if (a.status !== "done" && b.status === "done") return -1;
+        return 0;
+      });
+
+      setListToDo(sortedTodos);
+      setFilteredToDo(sortedTodos);
     } catch (error) {
       message.error("Không thể tải danh sách công việc");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchTodoById = async (id) => {
+    try {
+      setLoading(true);
+      const response = await todoService.getTodoById(id);
+      return response.data;
+    } catch (error) {
+      message.error("Không thể tải thông tin công việc");
+      return null;
     } finally {
       setLoading(false);
     }
@@ -76,14 +95,24 @@ export default function TodoList() {
     }
   };
 
-  const showModal = (record) => {
+  const showModal = async (record) => {
     if (record) {
-      setToDo(record);
-      form.setFieldsValue({
-        ...record,
-        date: moment(record.date, "DD/MM/YYYY"),
-      });
-      setIsAdding(false);
+      try {
+        const todoData = await fetchTodoById(record._id);
+        if (todoData) {
+          setToDo(todoData);
+          form.setFieldsValue({
+            name: todoData.name,
+            category: todoData.category,
+            status: todoData.status,
+            date: moment(todoData.date),
+          });
+          setIsAdding(false);
+        }
+      } catch (error) {
+        message.error("Không thể tải thông tin công việc");
+        return;
+      }
     } else {
       setToDo({});
       form.resetFields();
@@ -101,7 +130,7 @@ export default function TodoList() {
       const values = await form.validateFields();
       const todoData = {
         ...values,
-        date: moment(values.date).format("DD/MM/YYYY"),
+        date: values.date.format("YYYY-MM-DD"),
       };
 
       if (isAdding) {
@@ -152,13 +181,12 @@ export default function TodoList() {
       title: "Ngày hết hạn",
       dataIndex: "date",
       key: "date",
-      responsive: ["md"],
-      render: (text) => {
-        const dueDate = moment(text, "DD/MM/YYYY");
+      render: (date) => {
+        const dueDate = moment(date);
         const isOverdue = moment().isAfter(dueDate, "day");
         return (
           <span style={{ color: isOverdue ? "red" : "inherit" }}>
-            {text}
+            {dueDate.format("DD/MM/YYYY")}
             {isOverdue && (
               <ExclamationCircleOutlined
                 style={{ marginLeft: 8, color: "red" }}
@@ -173,7 +201,6 @@ export default function TodoList() {
       title: "Trạng thái",
       dataIndex: "status",
       key: "status",
-      responsive: ["sm"],
       render: (text, record) => (
         <Select
           value={text}
@@ -181,13 +208,13 @@ export default function TodoList() {
           onChange={(value) => handleStatusChange(record._id, value)}
         >
           <Option value="pending">
-            <Tag color="gold">Đang chờ</Tag>
+            <span className="tag-gold">Đang chờ</span>
           </Option>
           <Option value="in-progress">
-            <Tag color="blue">Trong tiến trình</Tag>
+            <span className="tag-blue">Trong tiến trình</span>
           </Option>
           <Option value="done">
-            <Tag color="green">Hoàn thành</Tag>
+            <span className="tag-green">Hoàn thành</span>
           </Option>
         </Select>
       ),
@@ -196,14 +223,13 @@ export default function TodoList() {
       title: "Tùy chọn",
       dataIndex: "category",
       key: "category",
-      responsive: ["lg"],
       render: (text) => {
         const categoryColors = {
           study: "blue",
           work: "green",
           personal: "purple",
           health: "red",
-          leisure: "orange",
+          leisure: "gold",
         };
         return (
           <Tag color={categoryColors[text]}>{`${
@@ -282,7 +308,22 @@ export default function TodoList() {
           pagination={{
             responsive: true,
             showSizeChanger: true,
-            showQuickJumper: true,
+          }}
+          onChange={(pagination, filters, sorter) => {
+            if (sorter.order) {
+              const sorted = [...filteredToDo].sort((a, b) => {
+                if (a.status === "done" && b.status !== "done") return 1;
+                if (a.status !== "done" && b.status === "done") return -1;
+                return sorter.order === "ascend"
+                  ? a[sorter.field] > b[sorter.field]
+                    ? 1
+                    : -1
+                  : a[sorter.field] < b[sorter.field]
+                  ? 1
+                  : -1;
+              });
+              setFilteredToDo(sorted);
+            }
           }}
         />
 
@@ -309,7 +350,7 @@ export default function TodoList() {
               label="Ngày kết thúc"
               rules={[{ required: true, message: "Vui lòng chọn ngày!" }]}
             >
-              <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+              <DatePicker style={{ width: "100%" }} />
             </Form.Item>
             <Form.Item
               name="status"
